@@ -1,5 +1,5 @@
 # Created and Written by Bridget Whitacre (^▽^)
-# box formating (((B,G),(3,9)),((H,AB),(3,15)))
+# box formating [[['B','G'],[3,9]],[['H','AB'],[3,15]]]
 
 #class GraphToList:
 
@@ -8,12 +8,20 @@ theAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def main(boxDimentions):
     returnList = []
     for i in boxDimentions:
+        tempList = []
         xList = i[0]
         yList = i[1]
         startx = xList[0]
         endx = xList[1]
         starty = yList[0]
         endy = yList[1]
+        
+        for j in xAxisListGenerator(startx,endx):
+            for k in yAxisListGenerator(starty,endy):
+                tempList.append([j,k])
+        returnList.append(tempList)
+    return (returnList)
+
 
     
 def findAlphabetLocation(lookValue):
@@ -52,6 +60,7 @@ def xAxisListGenerator(startx, endx):
                     if (theAlphabet[i] == letterToAdd):
                         counter = 1
                         letterToAdd = theAlphabet[i + 1] 
+                        returnList.append(letterToAdd + theAlphabet[0])
                         break
         
         elif (letterToAdd + theAlphabet[placeHold] == endx):
@@ -65,4 +74,4 @@ def xAxisListGenerator(startx, endx):
 
 
 
-print(xAxisListGenerator('B','AD'))
+print(main([[['B','G'],[3,9]],[['H','AB'],[3,15]]]))
