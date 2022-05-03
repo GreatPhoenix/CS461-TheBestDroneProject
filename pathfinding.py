@@ -187,3 +187,4 @@ pather = Pathfinder()
 pather.setGraph([[['B','G'],[3,9]],[['H','AB'],[3,15]]])
 pather.setStartLocation(["AA", 10])
 pather.shortestPathfind()
+ 
