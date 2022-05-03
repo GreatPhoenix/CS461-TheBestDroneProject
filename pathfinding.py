@@ -84,51 +84,106 @@ print( 728 == Graph.convertAlphabeticalToInt("AAZ"), Graph.convertAlphabeticalTo
 class Pathfinder:
     def __init__(self):
         self.graph = Graph()
+        self.start = None
+        self.currentPos = None
+        # List of tuples defining which cells have been visited
+        self.visited = [] # Do not mark the starting location as visited until end
+        # List of directions to move 1 cell (i.e. a length of 5 North moves would be ["N","N","N","N","N"])
+        self.path = []
+        self.lastDir= ""
 
     def setGraph(self, input):
         self.graph.main(input)
 
     def setStartLocation(self, location):
         self.start = location
+        self.currentPos = location
+        if type(self.currentPos[0]) == type(""):
+            self.currentPos = (Graph.convertAlphabeticalToInt(self.currentPos[0]), self.currentPos[1])
 
     def shortestPathfind(self):
-        print("Total number of squares to cover:", len(self.path))
+        print("Total number of squares to cover:", len(self.graph.flatGraph))
         pos = self.start
         xposint = Graph.convertAlphabeticalToInt(pos[0])
         counter = 0
         # find nearest wall
+        closest = self.findWalls(self.start)
+        print(closest)
+        self.move(closest[0])
+        # will be against a wall
+        #while True:
+        farthest = self.findWalls(self.start, farthest=True)
+        if farthest[0] != Pathfinder.oppositeDirection(self.lastDir): #if furthest direction is not backwards
+            self.move(farthest[0])
+        else:
+            self.move(farthest[1])
 
-    def findNearestWall(self, pos):
-        N = self.disToWallInDir(pos, "N")
-        E = self.disToWallInDir(pos, "E")
-        S = self.disToWallInDir(pos, "S")
-        W = self.disToWallInDir(pos, "W")
-        if min(N, E, S, W) is N:
-            print("North is closest")
-        if min(N, E, S, W) is E:
-            print("East is closest")
-        if min(N, E, S, W) is S:
-            print("South is closest")
-        if min(N, E, S, W) is W:
-            print("West is closest")
+    def move(self, mov):
+        self.lastMove = mov
+        xmod = 1 if "E" in mov.dir else (-1 if "W" in mov.dir else 0)
+        ymod = 1 if "S" in mov.dir else (-1 if "N" in mov.dir else 0)
+
+        for i in range(mov.dis):
+            self.currentPos = ((self.currentPos[0] + xmod), (self.currentPos[1] + ymod))
+            if self.currentPos in self.visited:
+                print("uhoh! We're covering the same tile twice at,", self.currentPos)
+                #deal with it? maybe?
+            if self.currentPos not in self.graph.flatGraph:
+                print("uhoh! we're going out of bounds of the nessecary space. I hope this is needed")
+            print("Moved to", self.currentPos)
+            print("Moved to [", Graph.convertDigitToAlphabetical(self.currentPos[0]), self.currentPos[1], "]")
+            self.visited.append(self.currentPos)
 
 
+    # Find the walls along the cardinals from the given pos, returns a list of tuples in the form of (dir, dis)
+        # by default it sorts to the nearest walls being first, and the farthest last, but putting fathest=True swaps that.
+    def findWalls(self, pos, farthest=False):
+        output = []
+        for i in ["N", "E", "S", "W"]:
+            output.append(Movement(i, self.disToWallInDir(pos, i)))
+        print(output)
+        output.sort(reverse=farthest, key=Pathfinder.sortSecond)
+        return output
 
     def disToWallInDir(self, pos, dir):
         xcord = pos[0] if type(pos[0]) == type(0) else Graph.convertAlphabeticalToInt(pos[0])
         ycord = pos[1]
         counter = 0
-        xmod = 1 if dir == "E" else (-1 if dir == "W" else 0)
-        ymod = 1 if dir == "S" else (-1 if dir == "N" else 0)
+        xmod = 1 if "E" in dir else (-1 if "W" in dir else 0)
+        ymod = 1 if "S" in dir else (-1 if "N" in dir else 0)
         while True:
             counter += 1
             if not self.graph.doesCellExist([(xcord + (counter * xmod)), (ycord + (counter * ymod))]):
                 break
         print(counter)
-        return counter
+        return counter-1
 
+    def sortSecond(val):
+        return val.dis
+
+    #pls compact this if you know how
+    def oppositeDirection(dir):
+        output = ""
+        if "N" in dir: output += "S"
+        if "S" in dir: output += "N"
+        if "W" in dir: output += "E"
+        if "E" in dir: output += "W"
+        return output
+
+class Movement:
+    def __init__(self, dir, dis):
+        if type(dir) == type(1) and type(dis) == type(""): #catch mishap
+            print("Hey! you didnt init this properly. I'll fix it this time.")
+            self.dir = dis
+            self.dis = dir
+        else:
+            self.dir = dir
+            self.dis = dis
+
+    def __repr__(self):
+        return "Mov: " + self.dir + " for " + str(self.dis) + " units"
 
 pather = Pathfinder()
 pather.setGraph([[['B','G'],[3,9]],[['H','AB'],[3,15]]])
 pather.setStartLocation(["AA", 10])
-pather.findNearestWall(["AA", 10])
+pather.shortestPathfind()
