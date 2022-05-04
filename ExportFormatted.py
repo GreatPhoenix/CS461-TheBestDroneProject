@@ -25,6 +25,7 @@ def decidemove(i):
     global cangoexactlyspeedlimit
     global maximizefuelefficiency
     global fuelmoves
+    global limitspeedmoves
     if(cangoexactlyspeedlimit):
         if(i < 2):
             return maxaccel()
@@ -35,6 +36,18 @@ def decidemove(i):
             return accel()
         else:
             return cruise()
+    else:
+        if(maximizefuelefficiency):
+            if(i < len(limitfuelmoves)):
+                return limitfuelmoves[i]()
+            else:
+                j = i-len(limitfuelmoves)
+                return fuelmoves[j % len(fuelmoves)]()
+        else:
+            if(i < len(limitspeedmoves)):
+                return limitspeedmoves[i]()
+            else:
+                return cruise()
     
 def cruise():
     global thrust
@@ -88,6 +101,8 @@ def cglide():
     return "GLIDE-CRUISE"
     
 fuelmoves = [climb, steepclimb, glide, glide, cglide, cglide]
+limitspeedmoves = [maxaccel, climb, glide, maxaccel]
+limitfuelmoves = [maxaccel, climb, glide, accel]
 
 if __name__ == "__main__":
     thefile = open('solution.csv', 'w', newline='')
