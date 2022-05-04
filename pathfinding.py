@@ -1,5 +1,5 @@
 
-# Created and Written by Bridget Whitacre (^▽^), heavily edited by Sylvia Krech (=-=)
+# Graoh class created and written by Bridget Whitacre (^▽^), heavily edited by Sylvia Krech (=-=)
     #In general, I've taken Bridget's code, and compacted it via list comprehensions, and logic that doesnt involve using "theAlphabet"
 
 # box formating [[['B','G'],[3,9]],[['H','AB'],[3,15]]]
@@ -18,7 +18,6 @@ class Graph:
             returnList.append([Pos(x,y) for x in xaxis for y in yaxis ])
         self.graph = returnList
         self.flatGraph = Graph.flatten(self.graph)
-        print(self.flatGraph)
         return self.graph #for debug
 
     def axisListGenerator(start, end):
@@ -32,10 +31,7 @@ class Graph:
     def doesCellExist(self, pos):
         return pos in self.flatGraph
 
-
-
-
-# Written by Sylvia Krech
+# Everything below written by Sylvia Krech
 class Pathfinder:
     def __init__(self):
         self.graph = Graph()
@@ -70,19 +66,99 @@ class Pathfinder:
         self.scanlineDescentDirection = Pathfinder.oppositeDirection(self.path[-1])
         print("scanlineDirection", self.scanlineDescentDirection)
         self.moveFurthest() #move to furthestCorner
-        self.lastScanlineDirection = self.path[-1]
-        while self.aboveStart():
-            self.move(Movement(self.scanlineDescentDirection, 1))
-            self.moveFurthest(Pathfinder.oppositeDirection(self.lastScanlineDirection))
-            self.lastScanlineDirection = self.path[-1]
+        self.updateLastScanlineDirection()
+        # decend until we're about to be level with the start
+        justSquarewaved = False
+        while self.distAboveStart() > 1:
+            if not justSquarewaved:
+                self.gotoNewScanline()
+            else:
+                justSquarewaved = False
+            self.moveFurthest(self.oppLastScanlineDirection)
+            self.updateLastScanlineDirection()
             print("Distance to bottom:", self.disToWallInDir(self.scanlineDescentDirection))
+            print(self.disToWallInDir(self.oppLastScanlineDirection))
             if self.disToWallInDir(self.scanlineDescentDirection) == 2:
-                self.squareWaveMovement(self.scanlineDescentDirection, Pathfinder.oppositeDirection(self.lastScanlineDirection))
+                self.squareWaveMovement(self.scanlineDescentDirection, self.oppLastScanlineDirection)
+                justSquarewaved = True
+
+        # decend avoiding blocking the bit close to the starting wall + the start
+        print("!!!!!!!!!!!!!!!!!!!!")
+        self.updateLastScanlineDirection()
+        self.gotoNewScanline()
+        distToStartTile = self.currentDistanceFromStart() - 1
+        print("distToStartTile", distToStartTile)
+        self.move(Movement(self.oppLastScanlineDirection, distToStartTile))
+        self.updateLastScanlineDirection()
+        while self.disToWallInDir(self.scanlineDescentDirection) > 2:
+            self.gotoNewScanline()
+            print("Last oppLastScanlineDirection", self.oppLastScanlineDirection)
+            print("Last lastScanlineDirection", self.lastScanlineDirection)
+            self.move(Movement(self.oppLastScanlineDirection, distToStartTile))
+            self.updateLastScanlineDirection()
+
+        #close to the end, just finish it off
+        #Okay so, if we get this far, we can either simply scanline to zip to the corner and head towards the end
+        if self.disToWallInDir(self.scanlineDescentDirection) == 1:
+            self.completeNewScanline()
+        else: #Otherwise. Its a pain.
+            self.squareWaveMovement(self.scanlineDescentDirection, self.oppLastScanlineDirection, distToStartTile)
+            self.completeNewScanline()
+
+        # Now we are in the corner opposite the furthest corner. we just have to get back
+                #and now the most painful bit
+                # very jank.
+        self.scanlineDescentDirection = Pathfinder.oppositeDirection(self.scanlineDescentDirection)
+        justSquarewaved = False
+        while self.distAboveStart() > 1:
+            self.completeNewScanline()
+        self.moveFurthest(self.oppLastScanlineDirection) #cheat TODO make not a cheat
+
+        #now compute shortestPathBack
+        print("Computing shortestPathBack")
+        while self.currentPos != self.start:
+            print("hey!!!!")
+            dir1 = "N" if self.currentPos.ycord > self.start.ycord else ("S" if self.currentPos.ycord < self.start.ycord else "")
+            dir2 = "W" if self.currentPos.xcord > self.start.xcord else ("E" if self.currentPos.xcord < self.start.xcord else "")
+            print("dir to move", dir1+dir2)
+            self.move(Movement(dir1+dir2, 1))
+
         return self.verifySolution()
 
-    def sqaureWaveMovement(self, initialDirection, scanDirection):
-        self.move(Movement(self.scanlineDescentDirection, 2))
-        while True:
+    def currentDistanceFromStart(self):
+        return self.currentPos.distance(self.start)
+
+    def completeNewScanline(self):
+        self.gotoNewScanline()
+        self.moveFurthest(self.oppLastScanlineDirection)
+        self.updateLastScanlineDirection()
+
+    def gotoNewScanline(self):
+        self.move(Movement(self.scanlineDescentDirection, 1))
+
+    def updateLastScanlineDirection(self):
+        self.lastScanlineDirection = self.path[-1]
+        self.oppLastScanlineDirection = Pathfinder.oppositeDirection(self.lastScanlineDirection)
+
+    def squareWaveMovement(self, initialDirection, scanDirection, dis = 99999, initDescent = True):
+        counter = 0
+        print("Begining squareWaveMovement")
+        if initDescent:
+            self.move(Movement(initialDirection, 1))
+        while self.disToWallInDir(self.scanlineDescentDirection) <= 2 and counter < dis:
+            self.__squareWave(initialDirection,scanDirection)
+            print("Distance to end of squareWaveMovement", self.disToWallInDir(scanDirection))
+            counter += 2
+        print("Ending squareWaveMovement")
+
+    def __squareWave(self, initialDirection, scanDirection):
+        print("Starting __squareWave at", self.currentPos)
+        upDirection = Pathfinder.oppositeDirection(initialDirection)
+        self.move(Movement(initialDirection, 1))
+        self.move(Movement(scanDirection, 1))
+        self.move(Movement(upDirection, 1))
+        self.move(Movement(scanDirection, 1))
+
     # Computes furthest wall, and then runs into it, without going backwards
     # If given a movement, will move as far as it can that way?
     def moveFurthest(self, dir = None):
@@ -90,8 +166,8 @@ class Pathfinder:
             farthest = self.findWalls(farthest=True)
         else:
             farthest = [Movement(dir, self.disToWallInDir(dir))]
-        print("Last dir", self.lastMove.dir)
-        print(farthest[0])
+        #print("Last dir", self.lastMove.dir)
+        #print(farthest[0])
         if farthest[0].dir != Pathfinder.oppositeDirection(self.lastMove.dir) or dir is not None: #if furthest direction is not backwards
             self.move(farthest[0])
         else:
@@ -99,6 +175,7 @@ class Pathfinder:
 
     def move(self, mov, saftey = True):
         self.lastMove = mov
+        print("Moving", mov.dir)
         xmod = 1 if "E" in mov.dir else (-1 if "W" in mov.dir else 0)
         ymod = 1 if "S" in mov.dir else (-1 if "N" in mov.dir else 0)
 
@@ -114,10 +191,9 @@ class Pathfinder:
                     break # stop before covering unnessecaryTiles
                 else:
                     print("uhoh! we're going out of bounds of the nessecary space. I hope this is needed")
-            print("Moved", mov.dir)
-            print("Moved to", self.currentPos)
             self.visited.append(self.currentPos)
             self.path.append(mov.dir)
+        print("Moved to", self.currentPos)
 
     # Find the walls along the cardinals from the given pos, returns a list of tuples in the form of (dir, dis)
         # by default it sorts to the nearest walls being first, and the farthest last, but putting fathest=True swaps that.
@@ -153,16 +229,16 @@ class Pathfinder:
         return output
 
     #
-    def aboveStart(self):
-        temp = False
+    def distAboveStart(self):
+        temp = -9999
         if self.scanlineDescentDirection == "N":
-            temp = self.currentPos.ycord > self.start.ycord
+            temp = self.currentPos.ycord - self.start.ycord
         elif self.scanlineDescentDirection == "S":
-            temp = self.currentPos.ycord < self.start.ycord
+            temp = self.start.ycord - self.currentPos.ycord
         elif self.scanlineDescentDirection == "E":
-            temp = self.currentPos.xcord < self.start.xcord
+            temp = self.start.xcord - self.currentPos.xcord
         elif self.scanlineDescentDirection == "W":
-            temp = self.currentPos.xcord > self.start.xcord
+            temp = self.currentPos.xcord - self.start.xcord
         print("aboveStart?", temp)
         return temp
 
@@ -174,22 +250,27 @@ class Pathfinder:
                 counter +=1
 
         counter2 = 0
+        missedCells = []
         for cell in self.graph.flatGraph:
             if cell not in self.visited:
                 counter2 +=1
+                missedCells.append(cell)
 
         counter3 = 0
         for dir in self.path:
             if len(dir) > 1:
                 counter3 += 1
-
-        flag = counter == 0 and counter2 == 0 and counter3 > 1
+        counter4 = len(self.path) - len(self.graph.flatGraph)
+        flag = counter == 0 and counter2 == 0 and counter3 <= 1 and counter4 == 0
         if not flag:
             print("Flew for", len(self.path), "cells")
             print(self.visited)
-            if counter : print("Flew outside of required boundaries for", counter, "cells")
-            if counter2: print("Not all cells visited,", counter2, "cells missed")
+            if counter != 0: print("Flew outside of required boundaries for", counter, "cells")
+            if counter2 != 0:
+                print("Not all cells visited,", counter2, "cells missed")
+                print("Specifically,", missedCells)
             if counter3 > 1: print("More intercardinals than nessecary,", counter3, "intercardinals used total")
+            if counter4 != 0: print("More movements than nessecary,", counter4)
 
         return flag
 
@@ -236,6 +317,9 @@ class Pos:
             alpha = alpha[1:]
         return output
 
+    def distance(self, other):
+        return abs(self.xcord - other.xcord) + abs(self.ycord - other.ycord)
+
     def __repr__(self):
         return "[" + self.alphabeticx + ", " + str(self.ycord) + "]"
 
@@ -245,7 +329,7 @@ class Pos:
     def __ne__(self, other):
         return not self == other
 
-### TESTING
+### CONVERSION + GRAPH TESTING
 if False:
     tempGraph = Graph()
     print(tempGraph.main([[['B','G'],[3,9]],[['H','AB'],[3,15]]]))
@@ -261,10 +345,24 @@ if False:
     print( 703 == Pos.convertAlphabeticalToInt("AAA"))
     print( 728 == Pos.convertAlphabeticalToInt("AAZ"), Pos.convertAlphabeticalToInt("AAZ"))
 ### TESTING END
-testing = [Pos(0,0)]
-test2 = Pos(0,0)
-print("Does Pos in a list work?", test2 in testing)
-pather = Pathfinder()
-pather.setGraph([[['B','G'],[3,9]],[['H','AB'],[3,15]]])
-pather.setStartLocation(Pos("AA", 10))
-pather.shortestPathfind()
+
+###PATHFINDER TESTING
+if False:
+    testing = [Pos(0,0)]
+    test2 = Pos(0,0)
+    print("Does Pos in a list work?", test2 in testing)
+    a = Pathfinder()
+    a.setGraph([[['B','G'],[3,9]],[['H','AB'],[3,15]]])
+    a.setStartLocation(Pos("AA", 10))
+    a.move(Movement("NE",1))
+    print(a.path)
+### TESTING END
+
+### The actual goal
+if __name__ == "__main__":
+
+    pather = Pathfinder()
+    pather.setGraph([[['B','G'],[3,9]],[['H','AB'],[3,15]]])
+    pather.setStartLocation(Pos("AA", 10))
+    pather.shortestPathfind()
+    print("Path to fly:", pather.path)
