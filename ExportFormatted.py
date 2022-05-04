@@ -1,7 +1,7 @@
 import csv
 import pathfinding
 
-maximizefuelefficiency = True
+maximizefuelefficiency = False
 cangoexactlyspeedlimit = True
 
 p = pathfinding.Pathfinder()
@@ -26,28 +26,24 @@ def decidemove(i):
     global maximizefuelefficiency
     global fuelmoves
     global limitspeedmoves
-    if(cangoexactlyspeedlimit):
+    if(maximizefuelefficiency):
+        if(i < len(limitfuelmoves)):
+            return limitfuelmoves[i]()
+        else:
+            j = i-len(limitfuelmoves)
+            return fuelmoves[j % len(fuelmoves)]()
+    elif(cangoexactlyspeedlimit):
         if(i < 2):
             return maxaccel()
-        elif(maximizefuelefficiency):
-            j = i-2
-            return fuelmoves[j % len(fuelmoves)]()
         elif(i == 2):
             return accel()
         else:
             return cruise()
     else:
-        if(maximizefuelefficiency):
-            if(i < len(limitfuelmoves)):
-                return limitfuelmoves[i]()
-            else:
-                j = i-len(limitfuelmoves)
-                return fuelmoves[j % len(fuelmoves)]()
+        if(i < len(limitspeedmoves)):
+            return limitspeedmoves[i]()
         else:
-            if(i < len(limitspeedmoves)):
-                return limitspeedmoves[i]()
-            else:
-                return cruise()
+            return cruise()
     
 def cruise():
     global thrust
@@ -102,7 +98,7 @@ def cglide():
     
 fuelmoves = [climb, steepclimb, glide, glide, cglide, cglide]
 limitspeedmoves = [maxaccel, climb, glide, maxaccel]
-limitfuelmoves = [maxaccel, climb, glide, accel]
+limitfuelmoves = [steepclimb, glide, glide, steepclimb, glide, glide, steepclimb, glide, glide]
 
 if __name__ == "__main__":
     thefile = open('solution.csv', 'w', newline='')
