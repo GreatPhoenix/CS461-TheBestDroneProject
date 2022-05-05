@@ -1,8 +1,7 @@
 import csv
 import pathfinding
 
-maximizefuelefficiency = False
-cangoexactlyspeedlimit = True
+maximizefuelefficiency = True
 
 p = pathfinding.Pathfinder()
 
@@ -22,7 +21,6 @@ def makemove(i):
     return s
     
 def decidemove(i):
-    global cangoexactlyspeedlimit
     global maximizefuelefficiency
     global fuelmoves
     global limitspeedmoves
@@ -32,16 +30,11 @@ def decidemove(i):
         else:
             j = i-len(limitfuelmoves)
             return fuelmoves[j % len(fuelmoves)]()
-    elif(cangoexactlyspeedlimit):
+    else:
         if(i < 2):
             return maxaccel()
         elif(i == 2):
             return accel()
-        else:
-            return cruise()
-    else:
-        if(i < len(limitspeedmoves)):
-            return limitspeedmoves[i]()
         else:
             return cruise()
     
